@@ -1,10 +1,13 @@
 import os
+import logging
 import sqlite3
+import sys
+import time
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -20,6 +23,14 @@ app.add_middleware(
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./novacart.db")
 APP_ENV = os.getenv("APP_ENV", "development")
 API_VERSION = os.getenv("API_VERSION", "v1")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    stream=sys.stdout,
+)
+logger = logging.getLogger("novacart")
 
 PRODUCTS = [
     (1, "DevOps Hoodie", 59.00),
@@ -52,6 +63,10 @@ def _sqlite_path():
 
 def _is_sqlite():
     return _sqlite_path() is not None
+
+
+def _database_engine():
+    return "sqlite" if _is_sqlite() else "postgresql"
 
 
 @contextmanager
@@ -289,9 +304,41 @@ def init_db():
         _seed_products(conn)
 
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = (time.perf_counter() - started) * 1000
+        logger.exception(
+            "event=request_failed method=%s path=%s duration_ms=%.2f",
+            request.method,
+            request.url.path,
+            duration_ms,
+        )
+        raise
+
+    duration_ms = (time.perf_counter() - started) * 1000
+    logger.info(
+        "event=request_completed method=%s path=%s status_code=%s duration_ms=%.2f",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
+
 @app.on_event("startup")
 def startup():
-    init_db()
+    logger.info("event=startup_begin environment=%s database_engine=%s", APP_ENV, _database_engine())
+    try:
+        init_db()
+    except Exception:
+        logger.exception("event=startup_failed database_engine=%s", _database_engine())
+        raise
+    logger.info("event=startup_complete database_engine=%s", _database_engine())
 
 
 @app.get("/health")
@@ -310,6 +357,7 @@ def ready():
                     cur.execute("SELECT 1")
         return {"status": "ready"}
     except Exception as exc:
+        logger.exception("event=readiness_failed database_engine=%s", _database_engine())
         raise HTTPException(status_code=503, detail=f"database unavailable: {exc}")
 
 
@@ -328,10 +376,12 @@ def orders(limit: int = 10):
 @app.post("/api/orders")
 def create_order(payload: CreateOrderRequest):
     if not payload.items:
+        logger.warning("event=order_rejected reason=empty_items")
         raise HTTPException(status_code=400, detail="order must include at least one item")
 
     promo_code = (payload.promo_code or "").strip().upper() or None
     if promo_code and promo_code not in PROMOS:
+        logger.warning("event=order_rejected reason=unknown_promo promo_code=%s", promo_code)
         raise HTTPException(status_code=400, detail=f"unknown promo code {promo_code}")
 
     discount_rate = PROMOS.get(promo_code, 0.0) if promo_code else 0.0
@@ -346,6 +396,7 @@ def create_order(payload: CreateOrderRequest):
         for item in payload.items:
             product = product_map.get(item.id)
             if not product:
+                logger.warning("event=order_rejected reason=unknown_product product_id=%s", item.id)
                 raise HTTPException(status_code=400, detail=f"unknown product id {item.id}")
 
             line_total = round(float(product["price"]) * item.quantity, 2)
@@ -364,6 +415,16 @@ def create_order(payload: CreateOrderRequest):
         discount = round(subtotal * discount_rate, 2)
         total = round(subtotal - discount, 2)
         _persist_order(conn, order_ref, created_at, promo_code, subtotal, discount, total, items)
+
+    logger.info(
+        "event=order_created order_ref=%s item_count=%s promo_code=%s subtotal=%.2f discount=%.2f total=%.2f",
+        order_ref,
+        len(items),
+        promo_code or "none",
+        subtotal,
+        discount,
+        total,
+    )
 
     return {
         "order_ref": order_ref,
