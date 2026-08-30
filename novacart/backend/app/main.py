@@ -156,6 +156,7 @@ def _seed_products(conn):
         count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
         if count == 0:
             conn.executemany("INSERT INTO products(id,name,price) VALUES(?,?,?)", PRODUCTS)
+            conn.commit()
         return
 
     with conn.cursor() as cur:
