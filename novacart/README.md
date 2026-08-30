@@ -15,7 +15,7 @@ cd backend
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-Open `frontend/index.html` separately. The production deployment approach is intentionally not provided.
+Open frontend/index.html directly in your browser (file://). Do not start a separate frontend development/web server for this initial local run.
 
 Use the application source as the source of truth for runtime details such as ports, health endpoints, environment variables, and persistence behavior.
 
