@@ -2,8 +2,10 @@ name: Backend Validation and build
 
 on:
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch: 
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
   
 jobs:
   backend-test-and-build:
