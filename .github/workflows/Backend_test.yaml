@@ -31,7 +31,7 @@ jobs:
    
       - name: Run backend tests
         run: |
-          pytest novacart/backend/tests/test_api.py --maxfail=1 --disable-warnings -q
+          PYTHONPATH=novacart/backend pytest novacart/backend/tests/test_api.py --maxfail=1 --disable-warnings -q
 
       
       - name: Build backend Docker image
