@@ -33,10 +33,23 @@ So if DB is healthy and after the checks are successful the backend container wi
 
 CI
 What happens when a pull request is created?
-What does CI validate?
+Whenever a pull request is being created the workflows get triggered. This is done by using 
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+What does CI validate? 
+The CI is used to validate the test cases for the backend app, We use pytest here to check the test cases which ahve been used for validation if the backend is working fine. For the frontend there are some syntax based checks and other test cases which needs to be added.
 What happens when validation fails?
+If the validation fails we will not be able to merge the changes into main . The nesxt step is to check at which level the worflow has failed from the workflow run logs.
 Which checks are required before merge?
+If the backend test cases are successfull or not, If for the frontend app JS syntax is fine or not
+
 What important checks are still missing?
+
+Will have to check that.
 
 Production Readiness
 Identify the top five real risks you would address before exposing NovaCart to real customers.
