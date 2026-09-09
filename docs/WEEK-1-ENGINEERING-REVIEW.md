@@ -56,14 +56,26 @@ Identify the top five real risks you would address before exposing NovaCart to r
 
 For each risk, document:
 
-Problem
-Potential impact
-Recommended improvement
-Priority: High / Medium / Low
-Your risks must be based on the environment you actually built, not generic production recommendations.
+Problem - Application secrets, database credentials, API keys, or connection strings may be stored in GitHub Secrets, environment files, or container environment variables without centralized secret management.
+Potential impact - If someone gets unauthorized access to the repo these credentials will be exposed. This will lead to access to DB and leak customer data.
+Recommended improvement - Using of Services like Azure key Vault to store the secrets and credentials 
+Priority: High
+
+Problem - Currently we are running single DB instance without HA/DR
+Potential impact - If somehow the primary DB crashes this will lead to downtime and thus lead to business loss.
+Recommended improvement - Implement HA/DR in postgres DB with resplication enabled so that Data can be replicated to the seconday node and there wont be any data loss.
+Priority: High
+
+Problem - Security Scanning of Dockerimages
+Potential Impact - Without scanning vulnerable packages may reach production environments.
+Recommended improvement - We need to add a step in our GitHub Actions workflow to scan the Dockerimages after they are getiing built. using Security scanner like Trivy to ensure we are compliant with the latest DevSecOps practises.
+Priority: High
+
+
+
 
 Recommendation
 Finish with one of the following exact recommendations. “READY” means that cloud infrastructure design may begin; it does not mean that NovaCart is safe to expose to real customers.
 
-READY TO PROCEED TO CLOUD INFRASTRUCTURE DESIGN
+READY TO PROCEED TO CLOUD INFRASTRUCTURE DESIGN - Yes READY with the infratsructure Design and also more enhancements will be made to the current workflow going forward.
 
