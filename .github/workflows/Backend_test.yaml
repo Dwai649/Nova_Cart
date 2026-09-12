@@ -3,10 +3,10 @@ name: Backend Validation and build
 on:
   pull_request:
     branches: ["main"]
-    paths: ["novacaert/backend/**"]
+    paths: ["novacart/backend/**"]
   push:
     branches: ["main"]
-    paths: ["novacaert/backend/**"] 
+    paths: ["novacart/backend/**"] 
   
 
   
