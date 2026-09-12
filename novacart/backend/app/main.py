@@ -36,6 +36,7 @@ PRODUCTS = [
     (1, "DevOps Hoodie", 59.00),
     (2, "Cloud Engineer Mug", 18.00),
     (3, "Incident Response Notebook", 14.00),
+    (4,"Glassware", 20.00)
 ]
 
 PROMOS = {
