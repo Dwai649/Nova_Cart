@@ -5,3 +5,7 @@ __pycache__/
 *venv
 *.db
 *.env
+**/*.tfstate
+**/*.tfstate.*
+*.tfvars
+**/.terraform/*
