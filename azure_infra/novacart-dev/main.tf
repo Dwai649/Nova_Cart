@@ -13,7 +13,7 @@ locals {
 resource "azurerm_resource_group" "rg" {
   name = "RG-${local.prefix}"
   location = var.location
-  tags = locals.tags
+  tags = local.tags
 }
 
 
@@ -93,3 +93,21 @@ module "db_nsg" {
 }
 }
 
+module "postgres_DB" {
+  source = "../Modules/postgres_DB" 
+  server_name =      var.server_name
+  database_name = var.database_name
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  administrator_login    = var.administrator_login
+  administrator_password = var.administrator_password
+
+  postgres_version = var.postgres_version
+  sku_name   = var.sku_name
+  storage_mb = var.storage_mb
+
+
+  
+
+}
