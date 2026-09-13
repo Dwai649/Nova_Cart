@@ -111,3 +111,22 @@ module "postgres_DB" {
   
 
 }
+
+resource "azurerm_container_registry" "acr_novacart" {
+  name = "RG-ACR-${local.prefix}"
+  location = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku = "Basic"
+  
+}
+
+
+
+#resource "azurerm_log_analytics_workspace" "app_logs" {
+ # name                = var.log_analytics
+ # location            = var.location
+ # resource_group_name = azurerm_resource_group.rg.name
+ # sku                 = "PerGB2018"
+ # retention_in_days   = 30
+#}
+

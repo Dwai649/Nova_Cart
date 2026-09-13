@@ -33,41 +33,24 @@ jobs:
           pip install pytest 
           pip install httpx
 
-   
-      
-      - name: Start FastAPI app
+      - name: Run backend tests
         run: |
-         cd novacart/backend
-         python -m uvicorn app.main:app --host 127.0.0.1 --port 8080 &
-         echo $! > backend.pid
-
-
-      - name: Wait for backend to be healthy 
-        run: |
-         for i in {1..20}; do 
-          if [[ curl -f http://127.0.0.1:8080/api/health ]]; then
-             echo "Backend is up and healthy"
-             break
-          fi
-          sleep 2
-         done
-      
-      - name: test runtime 
-        run: |
-          response = ${curl -s http://127.0.0.1:8080/api/runtime}
-          echo "$response"
-
-
-     # - name: Run backend tests
-    #  run: |
-     #     PYTHONPATH=novacart/backend pytest novacart/backend/tests/test_api.py --maxfail=1 --disable-warnings -q
+          PYTHONPATH=novacart/backend pytest novacart/backend/tests/test_api.py --maxfail=1 --disable-warnings -q
          
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
 
-      - name: Build backend Docker image
+      - name: Build and push backend Docker image
         run: |
           docker build \
-            -t my-backend:pr-${{ github.sha }} \
-            ./novacart/backend
+            -t ${{ secrets.ACR_LOGIN_SERVER }}my-backend:pr-${{ github.sha }} \
+            ./novacart/backend &&  \
+          docker push \
+               ${{ secrets.ACR_LOGIN_SERVER }}my-backend:pr-${{ github.sha }}  
 
       

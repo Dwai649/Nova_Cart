@@ -16,7 +16,13 @@ variable "address_space" {
 
 variable "subnets" {
   description = "Map of subnets"
+
   type = map(object({
     address_prefixes = list(string)
+
+    delegation = optional(object({
+      name = string
+      actions = list(string)
+    }))
   }))
 }
