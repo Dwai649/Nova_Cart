@@ -559,7 +559,7 @@ h1 {
   white-space: nowrap;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 600px) {
   .shell {
     width: min(100% - 20px, 1040px);
     padding: 20px 0 36px;
