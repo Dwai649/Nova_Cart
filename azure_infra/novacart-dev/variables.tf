@@ -9,14 +9,6 @@ variable "vnet_address_space" {
   
 }
 
-variable "subnets" {
-    type = map(object({
-      address_prefixes = list(string) 
-    }))
-
-  
-}
-
 variable "server_name" {
   default = "novacartdbserver01"
   type = string
@@ -58,5 +50,15 @@ variable "storage_mb" {
 variable "log_analytics" {
     default = "LOG-NOVACART-DEV"
     type = string
+  
+}
+
+variable "container_app_subnet" {
+  type = list(string)
+  
+}
+
+variable "db_subnet" {
+  type = list(string)
   
 }

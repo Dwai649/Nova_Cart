@@ -12,6 +12,7 @@ resource "azurerm_postgresql_flexible_server" "psql_db_server" {
 
   public_network_access_enabled = true
 
+
   
 }
 
