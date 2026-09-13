@@ -54,3 +54,9 @@ variable "storage_mb" {
   default = 32768
 
 }
+
+variable "log_analytics" {
+    default = "LOG-NOVACART-DEV"
+    type = string
+  
+}
