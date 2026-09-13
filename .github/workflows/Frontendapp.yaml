@@ -30,5 +30,5 @@ jobs:
             -t ${{ secrets.ACR_LOGIN_SERVER }}/frontendimg:v1.0.0_pr-${{ github.sha }} \
             ./novacart/backend &&  \
           docker push \
-               ${{ secrets.ACR_LOGIN_SERVER }}/frontendimg:v1.0.0pr-${{ github.sha }}  
+               ${{ secrets.ACR_LOGIN_SERVER }}/frontendimg:v1.0.0_pr-${{ github.sha }}  
    
