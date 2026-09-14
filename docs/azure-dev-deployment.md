@@ -1,0 +1,6 @@
+ow the development deployment is assembled - There are mainly two folders in azure_infra one is the environement related resources and the other is the mpodules. The individual modules are used for creating the azure resources. The deployment is done via az login and then using terraform init , terraform validate , terraform plan and terraform apply.
+which Azure services are involved - The Azure services which are involved are Azure Virtual networks, Azure Subnets and subnet delegation,Azure Network Security Group, Azure Postgres SQL Flexible Server, Azure Container Registry and Azure Container applications.
+which endpoint the frontend uses to reach the backend - the frontend uses the env variables and also the FQDN of the backend for connecting to the backend.
+which endpoint the backend uses to reach the database - The backend uses the DB credentials and the URL for connecting to the DB. The outbound ips of the container environment has been allowed for the backend to connect to he DB.
+what the expected development endpoint(s) are 
+what you verified after deployment

@@ -47,11 +47,6 @@ variable "storage_mb" {
 
 }
 
-variable "log_analytics" {
-    default = "LOG-NOVACART-DEV"
-    type = string
-  
-}
 
 variable "container_app_subnet" {
   type = list(string)
