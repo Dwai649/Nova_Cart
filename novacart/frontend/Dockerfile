@@ -5,7 +5,7 @@ COPY app.js /usr/share/nginx/html/app.js
 COPY styles.css /usr/share/nginx/html/styles.css
 
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 
 EXPOSE 8081

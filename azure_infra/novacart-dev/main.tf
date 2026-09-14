@@ -272,7 +272,7 @@ resource "azurerm_container_app" "backend" {
 
 resource "azurerm_container_app" "frontend" {
   name                         = "frontend-novacart"
-  container_app_environment_id = module.aca_env
+  container_app_environment_id = module.aca_env.id
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
 
@@ -293,7 +293,7 @@ resource "azurerm_container_app" "frontend" {
 
     container {
       name   = "frontend"
-      image  = "${data.azurerm_container_registry.acr.login_server}/frontendimg:v1.0.0_pr-43f52d781982e17ed3df87aad00747dc92cdebca}"
+      image  = "${data.azurerm_container_registry.acr.login_server}/frontendimg:v1.0.0_pr-43f52d781982e17ed3df87aad00747dc92cdebca"
       cpu    = 0.25
       memory = "0.5Gi"
 
@@ -305,7 +305,7 @@ resource "azurerm_container_app" "frontend" {
       env {
      
         name  = "BACKEND_PORT"
-        value = "443"
+        value = "8080"
       }
       env {
         name  = "APP_ENV"
