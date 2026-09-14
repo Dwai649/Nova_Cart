@@ -37,3 +37,8 @@ variable "storage_mb" {
   type    = number
   default = 32768
 }
+
+#variable "delegated_subnet_id" {
+# type        = string
+#  description = "The exact resource ID of the delegated DB subnet"
+#}
