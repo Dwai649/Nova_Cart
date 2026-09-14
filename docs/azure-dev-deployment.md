@@ -3,4 +3,4 @@ which Azure services are involved - The Azure services which are involved are Az
 which endpoint the frontend uses to reach the backend - the frontend uses the env variables and also the FQDN of the backend for connecting to the backend.
 which endpoint the backend uses to reach the database - The backend uses the DB credentials and the URL for connecting to the DB. The outbound ips of the container environment has been allowed for the backend to connect to he DB.
 what the expected development endpoint(s) are 
-what you verified after deployment
+what you verified after deployment  - The frontend URL can be accessed via internet. The backend container is running without any errors or not. The tables are getting updated in the DB or not.
