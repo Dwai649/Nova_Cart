@@ -87,18 +87,6 @@ module "app_nsg" {
       destination_address_prefix = "*"
     }
 
-   
-    allow_aca_lb_inbound = {
-      priority                    = 110
-      direction                   = "Inbound"
-      access                      = "Allow"
-      protocol                    = "Tcp"
-      source_port_range           = "*"
-      destination_port_range      = "*"
-      source_address_prefix       = "AzureLoadBalancer"
-      destination_address_prefix  = "*"
-    }
-
     allow_aca_intra_subnet = {
       priority                    = 111
       direction                   = "Inbound"
@@ -305,7 +293,7 @@ resource "azurerm_container_app" "frontend" {
       env {
      
         name  = "BACKEND_PORT"
-        value = "8080"
+        value = "443"
       }
       env {
         name  = "APP_ENV"
