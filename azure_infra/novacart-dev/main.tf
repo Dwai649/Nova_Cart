@@ -41,7 +41,7 @@ resource "azurerm_subnet" "app" {
     }
   }
 }
-/*
+
 resource "azurerm_subnet" "DB" {
   name                 = "SNET-DB-${local.prefix}"
   resource_group_name  = azurerm_resource_group.rg.name 
@@ -56,7 +56,7 @@ resource "azurerm_subnet" "DB" {
     }
   }
 }
-*/
+
 module "app_nsg" {
   source = "../Modules/nsg"
 
@@ -121,7 +121,7 @@ module "app_nsg" {
   }
 }
 
-/* module "db_nsg" {
+ module "db_nsg" {
   source = "../Modules/nsg"
 
   name                 = "NSG-DB-${local.prefix}"
@@ -143,7 +143,20 @@ module "app_nsg" {
   }
 }
 
-*/
+module "postgres_dns" {
+  source = "../Modules/private_dns"
+
+  dns_zone_name      = var.dns_zone_name
+  resource_group_name = azurerm_resource_group.rg.name
+
+  virtual_network_id = module.network.vnet_id
+
+  link_name = "postgres-vnet-link"
+}
+
+
+
+
 
 
 module "postgres_DB" {
@@ -155,8 +168,9 @@ module "postgres_DB" {
 
   administrator_login    = var.administrator_login
   administrator_password = var.administrator_password
-
+  private_dns_zone_id = module.postgres_dns.private_dns_zone_id # from the ouputs described in the module DNS Zones 
   postgres_version = var.postgres_version
+  delegated_subnet_id = azurerm_subnet.DB.id
   sku_name   = var.sku_name
   storage_mb = var.storage_mb
 
@@ -207,7 +221,7 @@ resource "azurerm_container_app" "backend" {
 
     container {
       name   = "backend"
-      image  = "${data.azurerm_container_registry.acr.login_server}/my-backend:v1.0.0_pr-3fb396f0e4058791d14f35946990fd16cef6b337"
+      image  = "${data.azurerm_container_registry.acr.login_server}/my-backend:v1.0.0_pr-1ac12c6983f1eef8891fecc9cf835c110521ad17"
       cpu    = 0.5
       memory = "1Gi"
 
@@ -257,7 +271,7 @@ resource "azurerm_container_app" "backend" {
 
   depends_on = [module.postgres_DB]
 }
-
+/*
 resource "azurerm_container_app" "frontend" {
   name                         = "frontend-novacart"
   container_app_environment_id = module.aca_env.id
@@ -281,7 +295,7 @@ resource "azurerm_container_app" "frontend" {
 
     container {
       name   = "frontend"
-      image  = "${data.azurerm_container_registry.acr.login_server}/frontendimg:v1.0.0_pr-04b6b1f057fe31a65455ba267a3ffa777644d367"
+      image  = "${data.azurerm_container_registry.acr.login_server}/frontendimg:v1.0.0_pr-82eb2e12bbd6efd352ace81569641fac37622b11"
       cpu    = 0.25
       memory = "0.5Gi"
 
@@ -318,7 +332,7 @@ resource "azurerm_container_app" "frontend" {
   depends_on = [azurerm_container_app.backend]
 }
 
-
+*/ 
 
 
 

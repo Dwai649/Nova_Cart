@@ -57,3 +57,14 @@ variable "db_subnet" {
   type = list(string)
   
 }
+
+variable "dns_zone_name" {
+  default = "privatelink.postgres.database.azure.com"
+  type = string 
+}
+
+variable "link_name" {
+  default = "postgres-vnet-link"
+  type = string
+  
+}
