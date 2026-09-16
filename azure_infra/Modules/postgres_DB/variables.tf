@@ -38,7 +38,12 @@ variable "storage_mb" {
   default = 32768
 }
 
-#variable "delegated_subnet_id" {
-# type        = string
-#  description = "The exact resource ID of the delegated DB subnet"
-#}
+variable "delegated_subnet_id" {
+ type        = string
+  description = "The exact resource ID of the delegated DB subnet"
+}
+variable "private_dns_zone_id" {
+  type = string
+  
+  
+}

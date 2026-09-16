@@ -10,7 +10,9 @@ resource "azurerm_postgresql_flexible_server" "psql_db_server" {
   sku_name   = var.sku_name
   storage_mb = var.storage_mb
 
-  public_network_access_enabled = true
+  public_network_access_enabled = false 
+  delegated_subnet_id = var.delegated_subnet_id
+  private_dns_zone_id = var.private_dns_zone_id
 
 
   
