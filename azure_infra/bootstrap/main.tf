@@ -10,7 +10,7 @@
     backend "azurerm" {
       resource_group_name  = "RG-TFSTATE"
       storage_account_name = "sttfstatenovacart"
-      container_name       = "tfstate"
+      container_name       = "bootstrap-tf"
       key                  = "bootstrap.terraform.tfstate" 
     }
   }
