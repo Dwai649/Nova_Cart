@@ -47,7 +47,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: /azure_infra/bootstrap
+        working-directory: ./azure_infra/bootstrap
 
     steps:
 
