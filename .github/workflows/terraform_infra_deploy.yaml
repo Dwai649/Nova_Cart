@@ -1,0 +1,78 @@
+name: Terraform plan and apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**.tf"
+      - "**.tfvars"
+      - ".github/workflows/terraform-*.yml"
+
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag to build and deploy"
+        required: false
+        type: string
+
+      skip_build:
+        description: "Reuse existing image"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+
+  bootstrap:
+    runs-on: ubuntu-latest
+
+    outputs:
+      acr_name: ${{ steps.out.outputs.acr_name }}
+      acr_resource_group_name: ${{ steps.out.outputs.acr_rg }}
+
+    defaults:
+      run:
+        working-directory: /azure_infra/bootstrap
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform plan
+        run: terraform plan   
+
+      - name: Terraform Apply
+        run: terraform apply -input=false -auto-approve
+
+      - id: out
+        run: |
+          echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "acr_rg=$(terraform output -raw acr_resource_group_name)" >> "$GITHUB_OUTPUT"
