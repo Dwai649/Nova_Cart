@@ -11,5 +11,5 @@ output "acr_id" {
 }
 
 output "acr_resource_group_name" {
-  value = azurerm_resource_group.acr.name
+  value = azurerm_resource_group.RG_ACR.name
 }

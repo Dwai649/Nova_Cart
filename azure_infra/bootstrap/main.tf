@@ -10,7 +10,7 @@
     backend "azurerm" {
       resource_group_name  = "RG-TFSTATE"
       storage_account_name = "sttfstatenovacart"
-      container_name       = "tfstate"
+      container_name       = "bootstrap-tf"
       key                  = "bootstrap.terraform.tfstate" 
     }
   }
@@ -29,7 +29,7 @@
     }
   }
 
-  resource "azurerm_resource_group" "acr" {
+  resource "azurerm_resource_group" "RG_ACR" {
     name     = var.acr_resource_group_name
     location = var.location
     tags     = local.tags
@@ -37,8 +37,8 @@
 
   resource "azurerm_container_registry" "acr" {
     name                = var.acr_name
-    resource_group_name = azurerm_resource_group.acr.name
-    location            = azurerm_resource_group.acr.location
+    resource_group_name = azurerm_resource_group.RG_ACR.name
+    location            = azurerm_resource_group.RG_ACR.location
     sku                 = var.acr_sku
 
   

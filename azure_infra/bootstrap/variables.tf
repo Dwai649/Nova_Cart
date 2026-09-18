@@ -20,7 +20,4 @@ variable "acr_sku" {
   default = "Standard"
 }
 
-variable "ci_principal_object_id" {
-  description = "Object ID (not app ID) of the CI service principal that pushes images. az ad sp show --id <app-id> --query id -o tsv"
-  type        = string
-}
+
