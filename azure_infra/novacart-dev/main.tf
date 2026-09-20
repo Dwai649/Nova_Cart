@@ -144,7 +144,7 @@ module "db_nsg" {
 }
 
 module "postgres_dns" {
-  source = "../Modules/private_dns"
+  source = "../Modules/private_DNS"
 
   dns_zone_name       = var.dns_zone_name
   resource_group_name = azurerm_resource_group.rg.name
