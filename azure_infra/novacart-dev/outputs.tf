@@ -5,7 +5,7 @@ output "acr_login_server" {
 
 
 output "acr_id" {
-  value = data.azurerm_container_registry.acr.id 
+  value = data.azurerm_container_registry.acr.id
 }
 
 

@@ -39,11 +39,11 @@ variable "storage_mb" {
 }
 
 variable "delegated_subnet_id" {
- type        = string
+  type        = string
   description = "The exact resource ID of the delegated DB subnet"
 }
 variable "private_dns_zone_id" {
   type = string
-  
-  
+
+
 }
