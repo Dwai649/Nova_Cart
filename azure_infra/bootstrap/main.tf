@@ -49,10 +49,6 @@ resource "azurerm_container_registry" "acr" {
 
   tags = local.tags
 
-  lifecycle {
-    # Images are the whole point of this registry - never let a plan quietly
-    # replace it. Remove this only when you genuinely intend to lose them.
-    prevent_destroy = true
-  }
+ 
 }
 
