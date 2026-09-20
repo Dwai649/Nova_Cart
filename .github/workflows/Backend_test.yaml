@@ -65,11 +65,13 @@ jobs:
       # Only push a real image on main - a PR from within this repo still
       # has secrets available and would otherwise push an image on every
       # backend-touching PR, most of which never get deployed.
+      # Swap 'azure/docker-login@v1' out for the official Docker login action
       - name: Log in to Azure Container Registry
         if: github.event_name != 'pull_request'
-        uses: azure/docker-login@v1
+        uses: docker/login-action@v3
         with:
-          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          # Use your exact same Service Principal secrets
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
@@ -78,6 +80,7 @@ jobs:
         run: |
           docker build \
             -t ${{ secrets.ACR_LOGIN_SERVER }}/my-backend:${{ steps.tag.outputs.tag }} \
-            ./novacart/backend && \
+            ./novacart/backend
+          
           docker push \
             ${{ secrets.ACR_LOGIN_SERVER }}/my-backend:${{ steps.tag.outputs.tag }}
