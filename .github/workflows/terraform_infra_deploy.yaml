@@ -19,12 +19,8 @@ on:
         description: "Backend tag to deploy (blank = build fresh from HEAD)"
         required: false
         type: string
-      frontend_image_tag:
-        description: "Frontend tag to deploy (blank = build fresh from HEAD)"
-        required: false
-        type: string
       skip_build:
-        description: "Reuse the tags already deployed instead of rebuilding"
+        description: "Reuse the backend tag already deployed instead of rebuilding"
         required: false
         type: boolean
         default: false
@@ -32,7 +28,7 @@ on:
 permissions:
   contents: read
   pull-requests: write # only used by the PR-comment step
-  actions: write # only used by `gh variable set` in main-apply
+  actions: write        # only used by `gh variable set` in apply
 
 env:
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -42,36 +38,19 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------
-  # Registry: plan on every trigger, apply only on push/dispatch (never on
-  # a PR - a PR must never be able to mutate real Azure resources).
-  # ---------------------------------------------------------------------
-  bootstrap:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./azure_infra/bootstrap
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.8
-          terraform_wrapper: false
-
-      - run: terraform init -input=false
-
-      - run: terraform plan -input=false -out=tfplan
-
-      - name: Apply
-        if: github.event_name != 'pull_request'
-        run: terraform apply -input=false -auto-approve tfplan
-
-  # ---------------------------------------------------------------------
-  # Images: only on push/dispatch. Each calls the app's own workflow as a
-  # job and waits for it - `uses:` at job level, not step level.
+  # Backend image. Only on push/dispatch - a PR just plans against
+  # whatever's already deployed, it never builds. `uses:` at job level
+  # calls Backend_test.yaml as a job and waits for it.
+  #
+  # The registry itself (ACR) is NOT bootstrapped here - it's long-lived,
+  # created once by hand via azure_infra/bootstrap, same reasoning as the
+  # identity stack. Re-planning/applying it on every PR was adding a stage
+  # for something that essentially never changes, which is exactly the
+  # complexity worth cutting. If `RG-RET-02` in the error above turns out
+  # to be a real second registry rather than a typo for `RG-RET-01`,
+  # nothing here changes - just point terraform.tfvars at the right one.
   # ---------------------------------------------------------------------
   backend-build:
-    needs: bootstrap
     if: ${{ github.event_name != 'pull_request' && !inputs.skip_build }}
     uses: ./.github/workflows/Backend_test.yaml
     with:
@@ -81,25 +60,17 @@ jobs:
       ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
-  # frontend-build mirrors backend-build exactly, calling a
-  # frontend-build.yml with the same workflow_call block added - see the
-  # note in the response for why this isn't written out here.
-
   # ---------------------------------------------------------------------
-  # Main stack: VNet, NSGs, Postgres, Container Apps environment, both
-  # container apps. Plan always; apply only on push/dispatch.
+  # Plan - runs on every trigger. Frontend still deploys (from whatever
+  # FRONTEND_IMAGE_TAG already points at), it just isn't built here.
   # ---------------------------------------------------------------------
-  main-plan:
-    needs: [bootstrap]
-    if: always() && needs.bootstrap.result == 'success'
+  plan:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./azure_infra/novacart-dev
     env:
       TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
-      # PR plans reflect "if applied with what's live today" - they don't
-      # trigger a build, so there's no fresh tag to plan against yet.
       TF_VAR_backend_image_tag: ${{ vars.BACKEND_IMAGE_TAG }}
       TF_VAR_frontend_image_tag: ${{ vars.FRONTEND_IMAGE_TAG }}
     steps:
@@ -150,13 +121,16 @@ jobs:
       - if: steps.plan.outcome == 'failure'
         run: exit 1
 
-  main-apply:
-    needs: [bootstrap, backend-build, main-plan]
+  # ---------------------------------------------------------------------
+  # Apply - only on push/dispatch. Re-plans rather than reusing plan's
+  # saved file, since that predates this run's fresh backend tag.
+  # ---------------------------------------------------------------------
+  apply:
+    needs: [backend-build, plan]
     if: |
       always() &&
       github.event_name != 'pull_request' &&
-      needs.bootstrap.result == 'success' &&
-      needs.main-plan.result == 'success' &&
+      needs.plan.result == 'success' &&
       needs.backend-build.result != 'failure' && needs.backend-build.result != 'cancelled'
     runs-on: ubuntu-latest
     environment: dev
@@ -166,7 +140,7 @@ jobs:
     env:
       TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
       TF_VAR_backend_image_tag: ${{ needs.backend-build.outputs.image_tag || vars.BACKEND_IMAGE_TAG }}
-    
+      TF_VAR_frontend_image_tag: ${{ vars.FRONTEND_IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
 
@@ -177,27 +151,23 @@ jobs:
 
       - name: Confirm image tags are set
         run: |
-          if [ -z "$TF_VAR_backend_image_tag" ]; then
-            echo "Missing an image tag: build was skipped and no IMAGE_TAG variable fallback is set." >&2
+          if [ -z "$TF_VAR_backend_image_tag" ] || [ -z "$TF_VAR_frontend_image_tag" ]; then
+            echo "Missing an image tag - BACKEND_IMAGE_TAG/FRONTEND_IMAGE_TAG repo variables must be set at least once." >&2
             exit 1
           fi
           echo "Backend:  $TF_VAR_backend_image_tag"
-      
+          echo "Frontend: $TF_VAR_frontend_image_tag"
 
       - run: terraform init -input=false
-
-      # Re-plan against the merged commit rather than reusing main-plan's
-      # saved file - that plan predates this run's fresh image tags.
       - run: terraform plan -input=false -out=tfplan
       - run: terraform apply -input=false -auto-approve tfplan
 
-      - name: Update deployed-tag variables
+      - name: Update deployed-tag variable
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh variable set BACKEND_IMAGE_TAG --body "$TF_VAR_backend_image_tag"
-       
+        run: gh variable set BACKEND_IMAGE_TAG --body "$TF_VAR_backend_image_tag"
+
       - name: Show outputs
         run: |
-          
+          echo "Frontend: $(terraform output -raw frontend_url)"
           echo "Backend:  $(terraform output -raw backend_internal_fqdn)"
