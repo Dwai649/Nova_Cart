@@ -1,14 +1,13 @@
 name: Terraform plan and apply
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
       - "**.tf"
       - "**.tfvars"
       - ".github/workflows/terraform-*.yml"
-
-  pull_request:
+  push:
     branches: [main]
     paths:
       - "**.tf"
@@ -16,19 +15,24 @@ on:
       - ".github/workflows/terraform-*.yml"
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: "Tag to build and deploy"
+      backend_image_tag:
+        description: "Backend tag to deploy (blank = build fresh from HEAD)"
         required: false
         type: string
-
+      frontend_image_tag:
+        description: "Frontend tag to deploy (blank = build fresh from HEAD)"
+        required: false
+        type: string
       skip_build:
-        description: "Reuse existing image"
+        description: "Reuse the tags already deployed instead of rebuilding"
         required: false
         type: boolean
         default: false
 
 permissions:
   contents: read
+  pull-requests: write # only used by the PR-comment step
+  actions: write # only used by `gh variable set` in main-apply
 
 env:
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -37,49 +41,163 @@ env:
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
 jobs:
-
+  # ---------------------------------------------------------------------
+  # Registry: plan on every trigger, apply only on push/dispatch (never on
+  # a PR - a PR must never be able to mutate real Azure resources).
+  # ---------------------------------------------------------------------
   bootstrap:
     runs-on: ubuntu-latest
-
-    outputs:
-      acr_name: ${{ steps.out.outputs.acr_name }}
-      acr_resource_group_name: ${{ steps.out.outputs.acr_rg }}
-
     defaults:
       run:
         working-directory: ./azure_infra/bootstrap
-
     steps:
-
       - uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: |
-            {
-              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
-              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
-              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
-              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
-            }
 
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
           terraform_wrapper: false
 
-      - name: Terraform Init
-        run: terraform init -input=false
+      - run: terraform init -input=false
 
-      - name: Terraform plan
-        run: terraform plan   
+      - run: terraform plan -input=false -out=tfplan
 
-      - name: Terraform Apply
-        run: terraform apply -input=false -auto-approve
+      - name: Apply
+        if: github.event_name != 'pull_request'
+        run: terraform apply -input=false -auto-approve tfplan
 
-      - id: out
+  # ---------------------------------------------------------------------
+  # Images: only on push/dispatch. Each calls the app's own workflow as a
+  # job and waits for it - `uses:` at job level, not step level.
+  # ---------------------------------------------------------------------
+  backend-build:
+    needs: bootstrap
+    if: ${{ github.event_name != 'pull_request' && !inputs.skip_build }}
+    uses: ./.github/workflows/Backend_test.yaml
+    with:
+      image_tag: ${{ inputs.backend_image_tag }}
+    secrets:
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+
+  # frontend-build mirrors backend-build exactly, calling a
+  # frontend-build.yml with the same workflow_call block added - see the
+  # note in the response for why this isn't written out here.
+
+  # ---------------------------------------------------------------------
+  # Main stack: VNet, NSGs, Postgres, Container Apps environment, both
+  # container apps. Plan always; apply only on push/dispatch.
+  # ---------------------------------------------------------------------
+  main-plan:
+    needs: [bootstrap]
+    if: always() && needs.bootstrap.result == 'success'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./azure_infra/novacart-dev
+    env:
+      TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
+      # PR plans reflect "if applied with what's live today" - they don't
+      # trigger a build, so there's no fresh tag to plan against yet.
+      TF_VAR_backend_image_tag: ${{ vars.BACKEND_IMAGE_TAG }}
+      TF_VAR_frontend_image_tag: ${{ vars.FRONTEND_IMAGE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: true
+
+      - run: terraform fmt -check -recursive
+      - run: terraform init -input=false
+      - run: terraform validate
+
+      - name: Plan
+        id: plan
+        run: terraform plan -input=false -no-color -out=tfplan
+        continue-on-error: true
+
+      - name: Comment plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          PLAN: ${{ steps.plan.outputs.stdout }}
+        with:
+          script: |
+            const plan = (process.env.PLAN || '').substring(0, 60000);
+            const body = [
+              `### Terraform plan: \`${{ steps.plan.outcome }}\``,
+              '',
+              '<details><summary>Show plan</summary>',
+              '',
+              '```terraform',
+              plan,
+              '```',
+              '</details>',
+              '',
+              '> Plan uses the currently-deployed image tags, not a fresh',
+              '> build - it shows infra changes only.',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+      - if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  main-apply:
+    needs: [bootstrap, backend-build, main-plan]
+    if: |
+      always() &&
+      github.event_name != 'pull_request' &&
+      needs.bootstrap.result == 'success' &&
+      needs.main-plan.result == 'success' &&
+      needs.backend-build.result != 'failure' && needs.backend-build.result != 'cancelled'
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: ./azure_infra/novacart-dev
+    env:
+      TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
+      TF_VAR_backend_image_tag: ${{ needs.backend-build.outputs.image_tag || vars.BACKEND_IMAGE_TAG }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Confirm image tags are set
         run: |
-          echo "acr_name=$(terraform output -raw acr_name)" >> "$ACR_NAME"
-          echo "acr_rg=$(terraform output -raw acr_resource_group_name)" >> "$ACR_RG"
+          if [ -z "$TF_VAR_backend_image_tag" ]; then
+            echo "Missing an image tag: build was skipped and no IMAGE_TAG variable fallback is set." >&2
+            exit 1
+          fi
+          echo "Backend:  $TF_VAR_backend_image_tag"
+      
+
+      - run: terraform init -input=false
+
+      # Re-plan against the merged commit rather than reusing main-plan's
+      # saved file - that plan predates this run's fresh image tags.
+      - run: terraform plan -input=false -out=tfplan
+      - run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Update deployed-tag variables
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh variable set BACKEND_IMAGE_TAG --body "$TF_VAR_backend_image_tag"
+       
+      - name: Show outputs
+        run: |
           
+          echo "Backend:  $(terraform output -raw backend_internal_fqdn)"

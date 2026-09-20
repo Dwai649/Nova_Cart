@@ -176,6 +176,41 @@ module "postgres_DB" {
 
 }
 
+
+data "azurerm_container_registry" "acr" {
+  name                = var.acr_name
+  resource_group_name = var.acr_resource_group_name
+}
+
+# ---------------------------------------------------------------------------
+# Managed identity for ACR image pulls
+#
+# Replaces the admin username/password approach: no registry credential
+# exists as a Terraform secret or a container secret anywhere. The identity
+# is granted AcrPull on the registry and both apps authenticate as it.
+# ---------------------------------------------------------------------------
+resource "azurerm_user_assigned_identity" "aca_pull" {
+  name                = "ID-ACAPULL-${local.prefix}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  tags                = local.tags
+}
+
+resource "azurerm_role_assignment" "acr_pull" {
+  scope                = data.azurerm_container_registry.acr.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.aca_pull.principal_id
+}
+
+
+
+
+
+
+
+
+
+
 module "aca_env" {
   source = "../Modules/container_environment"
   resource_group_name = azurerm_resource_group.rg.name
@@ -194,12 +229,11 @@ resource "azurerm_container_app" "backend" {
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
 
-   
-
-  secret {
-    name  = "acr-password"
-    value = data.azurerm_container_registry.acr.admin_password
+  identity {
+    type = "UserAssigned" 
+    identity_ids = [azurerm_user_assigned_identity.aca_pull.id]
   }
+
   secret {
     name  = "postgres-password"
     value = var.administrator_password
@@ -210,10 +244,10 @@ resource "azurerm_container_app" "backend" {
   }
 
   registry {
-    server               = data.azurerm_container_registry.acr.login_server
-    username             = data.azurerm_container_registry.acr.admin_username
-    password_secret_name = "acr-password"
+    server   = data.azurerm_container_registry.acr.login_server
+    identity = azurerm_user_assigned_identity.aca_pull.id
   }
+
 
   template {
     min_replicas = 1
@@ -221,7 +255,7 @@ resource "azurerm_container_app" "backend" {
 
     container {
       name   = "backend"
-      image  = "${data.azurerm_container_registry.acr.login_server}/my-backend:v1.0.0_pr-1ac12c6983f1eef8891fecc9cf835c110521ad17"
+      image  = "${data.azurerm_container_registry.acr.login_server}/my-backend:${var.backend_image_tag}"
       cpu    = 0.5
       memory = "1Gi"
 
@@ -269,7 +303,7 @@ resource "azurerm_container_app" "backend" {
 
   tags = local.tags
 
-  depends_on = [module.postgres_DB]
+  depends_on = [module.postgres_DB,azurerm_role_assignment.acr_pull]
 }
 /*
 resource "azurerm_container_app" "frontend" {

@@ -5,6 +5,7 @@ variable "location" {
 }
 
 variable "vnet_address_space" {
+    default = [ "10.0.0.0/16" ]
     type = list(string)
   
 }
@@ -20,9 +21,7 @@ variable "database_name" {
 }
 
 
-variable "administrator_login" {
-  type = string
-}
+
 
 variable "administrator_password" {
   type      = string
@@ -49,11 +48,13 @@ variable "storage_mb" {
 
 
 variable "container_app_subnet" {
+  default = [ "10.0.1.0/24" ]
   type = list(string)
   
 }
 
 variable "db_subnet" {
+  default = [ "10.0.2.0/24" ]
   type = list(string)
   
 }
@@ -65,6 +66,27 @@ variable "dns_zone_name" {
 
 variable "link_name" {
   default = "postgres-vnet-link"
+  type = string
+  
+}
+
+variable "acr_name" {
+   type = string
+
+}
+
+variable "acr_resource_group_name" {
+  type = string
+  
+}
+
+variable "backend_image_tag" {
+  type = string
+  
+}
+
+variable "administrator_login" {
+  default =  "db01_novacart_admin"
   type = string
   
 }

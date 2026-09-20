@@ -1,6 +1,6 @@
 variable "location" {
   type    = string
-  default = "westus"
+  default = "west US"
 }
 
 variable "acr_name" {
