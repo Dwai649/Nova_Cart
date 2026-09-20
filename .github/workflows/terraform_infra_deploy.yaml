@@ -140,7 +140,7 @@ jobs:
     env:
       TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
       TF_VAR_backend_image_tag: ${{ needs.backend-build.outputs.image_tag || vars.BACKEND_IMAGE_TAG }}
-      TF_VAR_frontend_image_tag: ${{ vars.FRONTEND_IMAGE_TAG }}
+      #TF_VAR_frontend_image_tag: ${{ vars.FRONTEND_IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
 
