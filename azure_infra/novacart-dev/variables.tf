@@ -71,17 +71,20 @@ variable "link_name" {
 }
 
 variable "acr_name" {
+  default = "novacartecommapp"
   type = string
 
 }
 
 variable "acr_resource_group_name" {
+  default = "RG-RET-02"
   type = string
 
 }
 
 variable "backend_image_tag" {
   type = string
+  
 
 }
 
