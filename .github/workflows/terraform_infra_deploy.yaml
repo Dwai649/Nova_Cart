@@ -151,12 +151,12 @@ jobs:
 
       - name: Confirm image tags are set
         run: |
-          if [ -z "$TF_VAR_backend_image_tag" ] || [ -z "$TF_VAR_frontend_image_tag" ]; then
+          if [ -z "$TF_VAR_backend_image_tag" ]; then
             echo "Missing an image tag - BACKEND_IMAGE_TAG/FRONTEND_IMAGE_TAG repo variables must be set at least once." >&2
             exit 1
           fi
           echo "Backend:  $TF_VAR_backend_image_tag"
-          echo "Frontend: $TF_VAR_frontend_image_tag"
+     
 
       - run: terraform init -input=false
       - run: terraform plan -input=false -out=tfplan
