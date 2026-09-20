@@ -31,9 +31,9 @@ data "azurerm_client_config" "sub" {}
 
 
 resource "azuread_application" "github_ci" {
-  
+
   display_name = "AAP-Terraform-Actions"
-  
+
 }
 
 resource "azuread_service_principal" "sp_client" {
@@ -43,11 +43,11 @@ resource "azuread_service_principal" "sp_client" {
 resource "azuread_service_principal_password" "sp_pass" {
   service_principal_id = azuread_service_principal.sp_client.id
 
-  
+
   end_date = timeadd(timestamp(), "8760h") # ~1 year
 
   lifecycle {
-  
+
     ignore_changes = [end_date]
   }
 }

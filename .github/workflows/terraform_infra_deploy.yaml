@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./azure_infra/novacart-dev
+        working-directory: ./azure_infra
     env:
       TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
       # PR plans reflect "if applied with what's live today" - they don't
@@ -162,7 +162,7 @@ jobs:
     environment: dev
     defaults:
       run:
-        working-directory: ./azure_infra/novacart-dev
+        working-directory: ./azure_infra
     env:
       TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
       TF_VAR_backend_image_tag: ${{ needs.backend-build.outputs.image_tag || vars.BACKEND_IMAGE_TAG }}
