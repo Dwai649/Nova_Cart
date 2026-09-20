@@ -1,36 +1,36 @@
 locals {
-  project = "NOVACART"
+  project     = "NOVACART"
   environment = "DEV"
 
   prefix = "${local.project}-${local.environment}"
-  tags = {"app_name" = "Novacart_Ecomm",
-  "app_location" = "Sweden",
-  "CostCenter" = 514327
-  "Department" = "StoreOps"
-}
+  tags = { "app_name" = "Novacart_Ecomm",
+    "app_location" = "Sweden",
+    "CostCenter"   = 514327
+    "Department"   = "StoreOps"
+  }
 }
 
 resource "azurerm_resource_group" "rg" {
-  name = "RG-${local.prefix}"
+  name     = "RG-${local.prefix}"
   location = var.location
-  tags = local.tags
+  tags     = local.tags
 }
 
 
 module "network" {
-    source = "../Modules/vnet_subnet"
+  source = "../Modules/vnet_subnet"
 
-    vnet_name = "VNET-${local.prefix}"
-    location = azurerm_resource_group.rg.location
-    resource_group_name = azurerm_resource_group.rg.name
-    address_space = var.vnet_address_space
-   
+  vnet_name           = "VNET-${local.prefix}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  address_space       = var.vnet_address_space
+
 }
 
 resource "azurerm_subnet" "app" {
   name                 = "SNET-APP-${local.prefix}"
-  resource_group_name  = azurerm_resource_group.rg.name 
-  virtual_network_name = module.network.vnet_name 
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = module.network.vnet_name
   address_prefixes     = var.container_app_subnet
 
   delegation {
@@ -44,7 +44,7 @@ resource "azurerm_subnet" "app" {
 
 resource "azurerm_subnet" "DB" {
   name                 = "SNET-DB-${local.prefix}"
-  resource_group_name  = azurerm_resource_group.rg.name 
+  resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = module.network.vnet_name
   address_prefixes     = var.db_subnet
 
@@ -60,85 +60,85 @@ resource "azurerm_subnet" "DB" {
 module "app_nsg" {
   source = "../Modules/nsg"
 
-  name                 = "NSG-APP-${local.prefix}"
-  location             = var.location
-  resource_group_name  = azurerm_resource_group.rg.name
+  name                = "NSG-APP-${local.prefix}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   subnet_id = azurerm_subnet.app.id
   security_rules = {
     allow_http = {
-      priority                = 101
-      direction               = "Inbound"
-      access                  = "Allow"
-      protocol                = "Tcp"
-      source_port_range       = "*"
-      destination_port_range  = "80"
-      source_address_prefix   = "*"
+      priority                   = 101
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "80"
+      source_address_prefix      = "*"
       destination_address_prefix = "*"
     }
     allow_https = {
-      priority                = 100
-      direction               = "Inbound"
-      access                  = "Allow"
-      protocol                = "Tcp"
-      source_port_range       = "*"
-      destination_port_range  = "443"
-      source_address_prefix   = "*"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
       destination_address_prefix = "*"
     }
 
     allow_aca_intra_subnet = {
-      priority                    = 111
-      direction                   = "Inbound"
-      access                      = "Allow"
-      protocol                    = "*"
-      source_port_range           = "*"
-      destination_port_range      = "*"
-      source_address_prefix       = azurerm_subnet.app.address_prefixes[0]
-      destination_address_prefix  = "*"
+      priority                   = 111
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "*"
+      source_port_range          = "*"
+      destination_port_range     = "*"
+      source_address_prefix      = azurerm_subnet.app.address_prefixes[0]
+      destination_address_prefix = "*"
     }
     allow_aca_outbound_azure_cloud = {
-      priority                    = 120
-      direction                   = "Outbound"
-      access                      = "Allow"
-      protocol                    = "Tcp"
-      source_port_range           = "*"
-      destination_port_range      = "443"
-      source_address_prefix       = "*"
-      destination_address_prefix  = "AzureCloud"
+      priority                   = 120
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
+      destination_address_prefix = "AzureCloud"
     }
     allow_aca_outbound_acr = {
-      priority                    = 121
-      direction                   = "Outbound"
-      access                      = "Allow"
-      protocol                    = "Tcp"
-      source_port_range           = "*"
-      destination_port_range      = "443"
-      source_address_prefix       = "*"
-      destination_address_prefix  = "MicrosoftContainerRegistry"
+      priority                   = 121
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
+      destination_address_prefix = "MicrosoftContainerRegistry"
     }
-    
+
   }
 }
 
- module "db_nsg" {
+module "db_nsg" {
   source = "../Modules/nsg"
 
-  name                 = "NSG-DB-${local.prefix}"
-  location             = var.location
-  resource_group_name  = azurerm_resource_group.rg.name
+  name                = "NSG-DB-${local.prefix}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   subnet_id = azurerm_subnet.DB.id
   security_rules = {
     allow_db_from_app_subnet = {
-      priority                    = 100
-      direction                   = "Inbound"
-      access                      = "Allow"
-      protocol                    = "Tcp"
-      source_port_range           = "*"
-      destination_port_range      = "5432"
-      source_address_prefix       = azurerm_subnet.app.address_prefixes[0] 
-      destination_address_prefix  = "*"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "5432"
+      source_address_prefix      = azurerm_subnet.app.address_prefixes[0]
+      destination_address_prefix = "*"
     }
   }
 }
@@ -146,7 +146,7 @@ module "app_nsg" {
 module "postgres_dns" {
   source = "../Modules/private_dns"
 
-  dns_zone_name      = var.dns_zone_name
+  dns_zone_name       = var.dns_zone_name
   resource_group_name = azurerm_resource_group.rg.name
 
   virtual_network_id = module.network.vnet_id
@@ -160,19 +160,19 @@ module "postgres_dns" {
 
 
 module "postgres_DB" {
-  source = "../Modules/postgres_DB" 
-  server_name =      var.server_name
-  database_name = var.database_name
+  source              = "../Modules/postgres_DB"
+  server_name         = var.server_name
+  database_name       = var.database_name
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 
   administrator_login    = var.administrator_login
   administrator_password = var.administrator_password
-  private_dns_zone_id = module.postgres_dns.private_dns_zone_id # from the ouputs described in the module DNS Zones 
-  postgres_version = var.postgres_version
-  delegated_subnet_id = azurerm_subnet.DB.id
-  sku_name   = var.sku_name
-  storage_mb = var.storage_mb
+  private_dns_zone_id    = module.postgres_dns.private_dns_zone_id # from the ouputs described in the module DNS Zones 
+  postgres_version       = var.postgres_version
+  delegated_subnet_id    = azurerm_subnet.DB.id
+  sku_name               = var.sku_name
+  storage_mb             = var.storage_mb
 
 }
 
@@ -212,14 +212,14 @@ resource "azurerm_role_assignment" "acr_pull" {
 
 
 module "aca_env" {
-  source = "../Modules/container_environment"
-  resource_group_name = azurerm_resource_group.rg.name
-  location = var.location
+  source               = "../Modules/container_environment"
+  resource_group_name  = azurerm_resource_group.rg.name
+  location             = var.location
   aca_environment_name = "ACA-${local.prefix}"
-  log_analytics_name = "LOG-${local.prefix}"
-  subnet_id = azurerm_subnet.app.id
+  log_analytics_name   = "LOG-${local.prefix}"
+  subnet_id            = azurerm_subnet.app.id
 
-   depends_on = [module.app_nsg]
+  depends_on = [module.app_nsg]
 
 }
 
@@ -230,7 +230,7 @@ resource "azurerm_container_app" "backend" {
   revision_mode                = "Single"
 
   identity {
-    type = "UserAssigned" 
+    type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.aca_pull.id]
   }
 
@@ -239,7 +239,7 @@ resource "azurerm_container_app" "backend" {
     value = var.administrator_password
   }
   secret {
-    name = "database-url"
+    name  = "database-url"
     value = "postgresql://${var.administrator_login}:${var.administrator_password}@${module.postgres_DB.server_fqdn}:5432/${var.database_name}?sslmode=require"
   }
 
@@ -291,9 +291,9 @@ resource "azurerm_container_app" "backend" {
   }
 
   ingress {
-    external_enabled = false 
+    external_enabled = false
     target_port      = 8080
-    transport         = "auto"
+    transport        = "auto"
 
     traffic_weight {
       percentage      = 100
@@ -303,7 +303,7 @@ resource "azurerm_container_app" "backend" {
 
   tags = local.tags
 
-  depends_on = [module.postgres_DB,azurerm_role_assignment.acr_pull]
+  depends_on = [module.postgres_DB, azurerm_role_assignment.acr_pull]
 }
 /*
 resource "azurerm_container_app" "frontend" {
@@ -366,7 +366,7 @@ resource "azurerm_container_app" "frontend" {
   depends_on = [azurerm_container_app.backend]
 }
 
-*/ 
+*/
 
 
 
