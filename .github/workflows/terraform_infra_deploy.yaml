@@ -19,11 +19,7 @@ on:
         description: "Backend tag to deploy (blank = build fresh from HEAD)"
         required: false
         type: string
-      skip_build:
-        description: "Reuse the backend tag already deployed instead of rebuilding"
-        required: false
-        type: boolean
-        default: false
+      
 
 permissions:
   contents: read
