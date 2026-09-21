@@ -37,18 +37,7 @@ env:
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
 jobs:
-  # ---------------------------------------------------------------------
-  # Backend image. Only on push/dispatch - a PR just plans against
-  # whatever's already deployed, it never builds. `uses:` at job level
-  # calls Backend_test.yaml as a job and waits for it.
-  #
-  # The registry itself (ACR) is NOT bootstrapped here - it's long-lived,
-  # created once by hand via azure_infra/bootstrap, same reasoning as the
-  # identity stack. Re-planning/applying it on every PR was adding a stage
-  # for something that essentially never changes, which is exactly the
-  # complexity worth cutting. If `RG-RET-02` in the error above turns out
-  # to be a real second registry rather than a typo for `RG-RET-01`,
-  # nothing here changes - just point terraform.tfvars at the right one.
+ 
   # ---------------------------------------------------------------------
   backend-build:
     if: ${{ github.event_name != 'pull_request' && !inputs.skip_build }}
@@ -60,10 +49,7 @@ jobs:
       ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
-  # ---------------------------------------------------------------------
-  # Plan - runs on every trigger. Frontend still deploys (from whatever
-  # FRONTEND_IMAGE_TAG already points at), it just isn't built here.
-  # ---------------------------------------------------------------------
+  
   plan:
     runs-on: ubuntu-latest
     defaults:
@@ -90,36 +76,7 @@ jobs:
         run: terraform plan -input=false -no-color -out=tfplan
         continue-on-error: true
 
-      - name: Comment plan on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          PLAN: ${{ steps.plan.outputs.stdout }}
-        with:
-          script: |
-            const plan = (process.env.PLAN || '').substring(0, 60000);
-            const body = [
-              `### Terraform plan: \`${{ steps.plan.outcome }}\``,
-              '',
-              '<details><summary>Show plan</summary>',
-              '',
-              '```terraform',
-              plan,
-              '```',
-              '</details>',
-              '',
-              '> Plan uses the currently-deployed image tags, not a fresh',
-              '> build - it shows infra changes only.',
-            ].join('\n');
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body,
-            });
-
-      - if: steps.plan.outcome == 'failure'
-        run: exit 1
+      
 
   # ---------------------------------------------------------------------
   # Apply - only on push/dispatch. Re-plans rather than reusing plan's
@@ -140,7 +97,7 @@ jobs:
     env:
       TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
       TF_VAR_backend_image_tag: ${{ needs.backend-build.outputs.image_tag || vars.BACKEND_IMAGE_TAG }}
-      #TF_VAR_frontend_image_tag: ${{ vars.FRONTEND_IMAGE_TAG }}
+      
     steps:
       - uses: actions/checkout@v4
 
@@ -162,10 +119,7 @@ jobs:
       - run: terraform plan -input=false -out=tfplan
       - run: terraform apply -input=false -auto-approve tfplan
 
-      - name: Update deployed-tag variable
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh variable set BACKEND_IMAGE_TAG --body "$TF_VAR_backend_image_tag"
+      
 
       - name: Show outputs
         run: |
