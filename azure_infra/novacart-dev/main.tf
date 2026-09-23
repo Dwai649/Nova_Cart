@@ -250,8 +250,7 @@ resource "azurerm_container_app" "backend" {
 
 
   template {
-    min_replicas = 1
-    max_replicas = 3
+   
 
     container {
       name   = "backend"
@@ -288,6 +287,12 @@ resource "azurerm_container_app" "backend" {
         secret_name = "database-url"
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image
+    ]
   }
 
   ingress {
