@@ -13,18 +13,16 @@ on:
       - "**.tf"
       - "**.tfvars"
       - ".github/workflows/terraform-*.yml"
-  workflow_dispatch:
-    inputs:
-      backend_image_tag:
-        description: "Backend tag to deploy (blank = build fresh from HEAD)"
-        required: false
-        type: string
+  
       
 
 permissions:
   contents: read
   pull-requests: write 
   actions: write        
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -35,15 +33,7 @@ env:
 jobs:
  
   # ---------------------------------------------------------------------
-  backend-build:
-    if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/Backend_test.yaml
-    with:
-      image_tag: ${{ inputs.backend_image_tag }}
-    secrets:
-      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+ 
 
   
   plan:
@@ -72,6 +62,12 @@ jobs:
         run: terraform plan -input=false -no-color -out=tfplan
         continue-on-error: true
 
+
+
+      - name: Fail if plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
       
 
   # ---------------------------------------------------------------------
@@ -79,12 +75,11 @@ jobs:
   # saved file, since that predates this run's fresh backend tag.
   # ---------------------------------------------------------------------
   apply:
-    needs: [backend-build, plan]
+    needs: [plan]
     if: |
       always() &&
       github.event_name != 'pull_request' &&
-      needs.plan.result == 'success' &&
-      needs.backend-build.result != 'failure' && needs.backend-build.result != 'cancelled'
+      needs.plan.result == 'success' 
     runs-on: ubuntu-latest
     environment: dev
     defaults:
@@ -92,7 +87,7 @@ jobs:
         working-directory: ./azure_infra/novacart-dev
     env:
       TF_VAR_administrator_password: ${{ secrets.PG_ADMIN_PASSWORD }}
-      TF_VAR_backend_image_tag: ${{ needs.backend-build.outputs.image_tag || vars.BACKEND_IMAGE_TAG }}
+      TF_VAR_backend_image_tag: ${{ vars.BACKEND_IMAGE_TAG }}
       
     steps:
       - uses: actions/checkout@v4
