@@ -88,6 +88,11 @@ variable "backend_image_tag" {
 
 }
 
+variable "frontend_image_tag" {
+  type = string
+  
+}
+
 variable "administrator_login" {
   default = "db01_novacart_admin"
   type    = string
