@@ -360,7 +360,7 @@ def ready():
         return {"status": "ready"}
     except Exception as exc:
         logger.exception("event=readiness_failed database_engine=%s", _database_engine())
-        raise HTTPException(status_code=503, detail=f"database unavailable: {exc}")
+        raise HTTPException(status_code=503, detail=f"database is unavailable: {exc}")
 
 
 @app.get("/api/products")
@@ -384,7 +384,7 @@ def create_order(payload: CreateOrderRequest):
     promo_code = (payload.promo_code or "").strip().upper() or None
     if promo_code and promo_code not in PROMOS:
         logger.warning("event=order_rejected reason=unknown_promo promo_code=%s", promo_code)
-        raise HTTPException(status_code=400, detail=f"unknown promo code {promo_code}")
+        raise HTTPException(status_code=400, detail=f"unknown promo code  {promo_code} applied")
 
     discount_rate = PROMOS.get(promo_code, 0.0) if promo_code else 0.0
     created_at = datetime.now(timezone.utc).isoformat()
@@ -399,7 +399,7 @@ def create_order(payload: CreateOrderRequest):
             product = product_map.get(item.id)
             if not product:
                 logger.warning("event=order_rejected reason=unknown_product product_id=%s", item.id)
-                raise HTTPException(status_code=400, detail=f"unknown product id {item.id}")
+                raise HTTPException(status_code=400, detail=f"unknown product item id {item.id}")
 
             line_total = round(float(product["price"]) * item.quantity, 2)
             subtotal += line_total
