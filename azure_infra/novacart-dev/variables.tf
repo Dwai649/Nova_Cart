@@ -90,7 +90,7 @@ variable "backend_image_tag" {
 
 variable "frontend_image_tag" {
   type = string
-  
+
 }
 
 variable "administrator_login" {

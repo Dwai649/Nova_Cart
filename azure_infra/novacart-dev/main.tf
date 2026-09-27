@@ -250,7 +250,7 @@ resource "azurerm_container_app" "backend" {
 
 
   template {
-   
+
 
     container {
       name   = "backend"
@@ -344,12 +344,12 @@ resource "azurerm_container_app" "frontend" {
       memory = "0.5Gi"
 
       env {
-     
+
         name  = "BACKEND_HOST"
         value = azurerm_container_app.backend.ingress[0].fqdn
       }
       env {
-     
+
         name  = "BACKEND_PORT"
         value = "443"
       }
@@ -361,9 +361,9 @@ resource "azurerm_container_app" "frontend" {
   }
 
   ingress {
-    external_enabled = true 
+    external_enabled = true
     target_port      = 8081
-    transport         = "auto"
+    transport        = "auto"
 
     traffic_weight {
       percentage      = 100

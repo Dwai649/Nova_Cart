@@ -49,6 +49,6 @@ resource "azurerm_container_registry" "acr" {
 
   tags = local.tags
 
- 
+
 }
 
