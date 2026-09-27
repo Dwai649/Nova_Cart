@@ -334,7 +334,7 @@ resource "azurerm_container_app" "frontend" {
   }
 
   template {
-    
+
 
     container {
       name   = "frontend"
