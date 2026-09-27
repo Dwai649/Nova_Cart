@@ -36,13 +36,16 @@ PRODUCTS = [
     (1, "DevOps Hoodie", 59.00),
     (2, "Cloud Engineer Mug", 18.00),
     (3, "Incident Response Notebook", 14.00),
-    (4,"Stoves", 20.00)
+    (4,"Stoves", 20.00),
+    (5,"Moisturizer", 15.00)
+
 ]
 
 PROMOS = {
     "DEVOPS10": 0.10,
     "NOVA15": 0.15,
     "SHIPFREE": 0.05,
+    
 }
 
 

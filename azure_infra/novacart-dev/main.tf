@@ -250,7 +250,7 @@ resource "azurerm_container_app" "backend" {
 
 
   template {
-   
+
 
     container {
       name   = "backend"
@@ -268,7 +268,7 @@ resource "azurerm_container_app" "backend" {
       }
       env {
         name  = "APP_ENV"
-        value = "development"
+        value = "dev"
       }
       env {
         name  = "API_VERSION"
@@ -310,12 +310,17 @@ resource "azurerm_container_app" "backend" {
 
   depends_on = [module.postgres_DB, azurerm_role_assignment.acr_pull]
 }
-/*
+
 resource "azurerm_container_app" "frontend" {
   name                         = "frontend-novacart"
   container_app_environment_id = module.aca_env.id
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.aca_pull.id]
+  }
 
   secret {
     name  = "acr-password"
@@ -329,36 +334,41 @@ resource "azurerm_container_app" "frontend" {
   }
 
   template {
-    min_replicas = 1
-    max_replicas = 3
+
 
     container {
       name   = "frontend"
-      image  = "${data.azurerm_container_registry.acr.login_server}/frontendimg:v1.0.0_pr-82eb2e12bbd6efd352ace81569641fac37622b11"
+      image  = "${data.azurerm_container_registry.acr.login_server}/my-frontend:${var.frontend_image_tag}"
       cpu    = 0.25
       memory = "0.5Gi"
 
       env {
-     
+
         name  = "BACKEND_HOST"
         value = azurerm_container_app.backend.ingress[0].fqdn
       }
       env {
-     
+
         name  = "BACKEND_PORT"
         value = "443"
       }
       env {
         name  = "APP_ENV"
-        value = "development"
+        value = "dev"
       }
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image
+    ]
+  }
+
   ingress {
-    external_enabled = true 
+    external_enabled = true
     target_port      = 8081
-    transport         = "auto"
+    transport        = "auto"
 
     traffic_weight {
       percentage      = 100
@@ -371,7 +381,7 @@ resource "azurerm_container_app" "frontend" {
   depends_on = [azurerm_container_app.backend]
 }
 
-*/
+
 
 
 

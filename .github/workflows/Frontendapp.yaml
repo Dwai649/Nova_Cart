@@ -81,6 +81,8 @@ jobs:
             az containerapp update \
             --name frontend \
             --resource-group RG-NOVACART-DEV \
-            --image ${{ secrets.ACR_LOGIN_SERVER }}/my-frontend:${{ steps.tag.outputs.tag }}
+            --image ${{ secrets.ACR_LOGIN_SERVER }}/my-frontend:${{ steps.tag.outputs.tag }} \
+            --set-env-vars \
+            BACKEND_HOST = ${{ vars.BACKEND_HOST }}
+            BACKEND_PORT = ${{ vars.BACKEND_PORT }}
 
-            
