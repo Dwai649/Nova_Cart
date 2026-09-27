@@ -99,8 +99,8 @@ jobs:
 
       - name: Confirm image tags are set
         run: |
-          [ -z "$TF_VAR_backend_image_tag" ] && {echo "TF_VAR_backend_image_tag is not set" >&2 exit 1 }
-          [ -z "$TF_VAR_frontend_image_tag" ] && {echo "TF_VAR_frontend_image_tag is not set" >&2 exit 1}
+          [ -z "$TF_VAR_backend_image_tag" ] && {echo "TF_VAR_backend_image_tag is not set" >&2 exit 1 ; }
+          [ -z "$TF_VAR_frontend_image_tag" ] && {echo "TF_VAR_frontend_image_tag is not set" >&2 exit 1 ;}
           echo "Backend: $TF_VAR_backend_image_tag"
           echo "Frontend: $TF_VAR_frontend_image_tag"
      
