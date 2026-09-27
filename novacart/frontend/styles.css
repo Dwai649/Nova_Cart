@@ -486,8 +486,8 @@ h1 {
 }
 
 .order-confirmation {
-  padding: 16px 18px;
-  border-radius: 18px;
+  padding: 16px 20px;
+  border-radius: 20px;
   background: rgba(15, 118, 110, 0.08);
   border: 1px solid rgba(15, 118, 110, 0.18);
   color: var(--accent-2);
@@ -526,7 +526,7 @@ h1 {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 20px;
 }
 
 .order-history-item,
